@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daiichi Sankyo — HCP Preference Centre</title>
+<style>
+  /* ============================================================
+     Daiichi Sankyo — HCP Preference & Consent Centre (MOCKUP)
+     Single file, static, no dependencies. GitHub Pages ready.
+     Flow: Login  ->  Create account (OneTrust inline form)  ->  Preference centre
+     Brand palette:
+       --navy  #0C377A   headers / primary text / CTAs
+       --blue  #22A3D9   primary brand accent
+       --green #15934A   opted-in / success
+       --yellow #F5E529  sparing highlight
+     ============================================================ */
+
+  :root{
+    --navy:#0C377A;
+    --navy-700:#0a2f68;
+    --blue:#22A3D9;
+    --blue-tint:#eef8fc;
+    --blue-tint-2:#dcf0f9;
+    --green:#15934A;
+    --green-tint:#e7f5ec;
+    --yellow:#F5E529;
+    --ink:#12233f;
+    --muted:#5c6b82;
+    --line:#dbe4ee;
+    --line-soft:#e8eef5;
+    --white:#ffffff;
+    --bg:#f4f8fb;
+    --shadow:0 1px 2px rgba(12,55,122,.06), 0 8px 24px rgba(12,55,122,.07);
+    --shadow-lg:0 12px 40px rgba(12,55,122,.16);
+    --radius:14px;
+    --radius-sm:10px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);
+    line-height:1.5;-webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--navy);text-decoration:none}
+  a:hover{text-decoration:underline}
+  h1,h2,h3{margin:0;letter-spacing:-.01em}
+
+  .view{display:none}
+  .view.active{display:block}
+
+  /* ---------- Wordmark ---------- */
+  /* Swap this block for the official Daiichi Sankyo SVG logo before go-live */
+  .wordmark{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+  .wordmark .part{color:var(--navy)}
+  .wordmark.light .part{color:#fff}
+  .wordmark .mark{
+    width:13px;height:13px;flex:0 0 auto;transform:rotate(45deg);
+    background:var(--blue);border-radius:3px;position:relative;
+  }
+  .wordmark .mark::after{content:"";position:absolute;inset:3px;border-radius:2px;background:var(--navy)}
+  .wordmark.light .mark::after{background:var(--navy)}
+
+  /* ---------- Logo image slot ----------
+     Drop the real file at images/daiichi-sankyo-logo.png (or .svg).
+     If it's missing, a neat dashed placeholder shows instead. */
+  .logo-slot{display:inline-flex;align-items:center;line-height:0}
+  .logo-slot img{height:36px;width:auto;display:block}
+  .logo-ph{
+    height:34px;min-width:150px;border:1.5px dashed rgba(255,255,255,.55);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;color:#cfe4f4;font-size:11px;
+    font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:0 16px;
+  }
+
+  /* ---------- GDPR cookie banner ---------- */
+  .cookie{
+    position:fixed;left:0;right:0;bottom:0;z-index:55;padding:16px;
+    display:flex;justify-content:center;transform:translateY(120%);transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .cookie.show{transform:none}
+  .cookie-inner{
+    background:#fff;border:1px solid var(--line-soft);border-radius:16px;box-shadow:var(--shadow-lg);
+    max-width:960px;width:100%;padding:18px 22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  }
+  .cookie-text{flex:1;min-width:240px}
+  .cookie-text strong{display:block;color:var(--navy);font-size:15px;margin-bottom:3px}
+  .cookie-text span{color:var(--muted);font-size:13.5px;line-height:1.5}
+  .cookie-text a{color:var(--blue);font-weight:600}
+  .cookie-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ck-btn{border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;padding:11px 20px;border-radius:10px;transition:all .15s ease}
+  .ck-solid{background:var(--navy);color:#fff;box-shadow:0 6px 16px rgba(12,55,122,.24)}
+  .ck-solid:hover{background:var(--navy-700)}
+  .ck-ghost{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
+  .ck-ghost:hover{border-color:var(--blue)}
+  .ck-link{background:none;border:0;cursor:pointer;font-family:inherit;color:var(--muted);font-weight:600;font-size:13.5px;padding:11px 6px}
+  .ck-link:hover{color:var(--navy);text-decoration:underline}
+  @media (max-width:620px){
+    .cookie-inner{flex-direction:column;align-items:stretch}
+    .cookie-actions{justify-content:space-between}
+    .cookie-actions .ck-btn{flex:1}
+  }
+
+  /* ============================================================
+     LOGIN VIEW
+     ============================================================ */
+  .auth{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr}
+  .auth-panel{
+    background:
+      radial-gradient(900px 300px at 20% 0%, rgba(34,163,217,.22), transparent 60%),
+      linear-gradient(160deg,#0f3e86 0%, var(--navy) 100%);
+    color:#fff;padding:48px 52px;display:flex;flex-direction:column;
+  }
+  .auth-panel .panel-body{margin:auto 0}
+  .auth-panel .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase;color:#bfe1f4;margin-bottom:18px;
+  }
+  .auth-panel .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--yellow)}
+  .auth-panel h1{font-size:32px;line-height:1.16;max-width:15ch;font-weight:750}
+  .auth-panel p{margin:14px 0 26px;color:#d6e6f4;font-size:16px;max-width:42ch}
+  .assure-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:13px}
+  .assure-list li{display:flex;align-items:flex-start;gap:11px;color:#e5f1fb;font-size:14.5px}
+  .assure-list svg{flex:0 0 auto;color:var(--blue);margin-top:1px}
+
+  .auth-main{display:grid;place-items:center;padding:40px 24px}
+  .auth-card{max-width:400px;width:100%}
+  .auth-card .signin-head{margin-bottom:22px}
+  .auth-card h2{font-size:23px;color:var(--navy);margin-bottom:6px}
+  .auth-card .signin-head p{color:var(--muted);font-size:14.5px;margin:0}
+
+  /* ---------- Form fields (shared) ---------- */
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px}
+  .field input,.field select{
+    width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;
+    font-size:15px;font-family:inherit;color:var(--ink);background:#fff;transition:all .15s ease;
+  }
+  .field input:focus,.field select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(34,163,217,.15)}
+  .field-row{display:flex;gap:14px}
+  .field-row .field{flex:1}
+  .field .hint{font-size:12px;color:var(--muted);margin-top:5px}
+
+  .btn{
+    border:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:15px;
+    padding:14px 26px;border-radius:11px;transition:all .15s ease;
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  }
+  .btn-primary{background:var(--navy);color:#fff;box-shadow:0 6px 18px rgba(12,55,122,.28)}
+  .btn-primary:hover{background:var(--navy-700);transform:translateY(-1px)}
+  .btn-primary:focus-visible{outline:3px solid rgba(34,163,217,.5);outline-offset:2px}
+  .btn-block{width:100%}
+  .btn-link{background:transparent;color:var(--muted);font-weight:600}
+  .btn-link:hover{color:#b02a2a;text-decoration:underline}
+
+  .auth-card .btn-primary{margin-top:4px}
+  .auth-alt{margin-top:20px;text-align:center;font-size:14px;color:var(--muted);padding-top:20px;border-top:1px solid var(--line-soft)}
+  .auth-alt a{color:var(--blue);font-weight:700}
+  .forgot{display:block;text-align:right;font-size:13px;color:var(--blue);font-weight:600;margin:-6px 0 18px}
+
+  /* ============================================================
+     SLIM TOPBAR (create + prefs)
+     ============================================================ */
+  .topbar{background:var(--navy);color:#fff;position:sticky;top:0;z-index:20}
+  .topbar-inner{
+    max-width:1060px;margin:0 auto;padding:16px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .topbar .wordmark .part{color:#fff}
+  .topbar-right{display:flex;align-items:center;gap:18px;font-size:13.5px}
+  .locale{display:flex;align-items:center;gap:7px;color:#cfe4f4;font-weight:500}
+  .locale .flag{width:18px;height:13px;border-radius:2px;overflow:hidden;display:inline-block;box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+  .secure{display:flex;align-items:center;gap:6px;color:#bcd8ef}
+  .backlink{display:flex;align-items:center;gap:6px;color:#cfe4f4;font-weight:600;font-size:13.5px;background:none;border:0;cursor:pointer;font-family:inherit}
+  .backlink:hover{color:#fff}
+
+  /* ============================================================
+     CREATE ACCOUNT VIEW
+     ============================================================ */
+  .create-wrap{max-width:640px;margin:0 auto;padding:40px 24px 64px}
+  .create-head{text-align:center;margin-bottom:28px}
+  .create-head .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;
+    letter-spacing:.11em;text-transform:uppercase;color:var(--blue);margin-bottom:12px;
+  }
+  .create-head .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+  .create-head h1{font-size:28px;color:var(--navy)}
+  .create-head p{color:var(--muted);font-size:15px;margin:8px 0 0;max-width:52ch;margin-inline:auto}
+
+  /* OneTrust inline collection point — placeholder container.
+     Replace the .otform contents with your OneTrust web form embed script. */
+  .otform{
+    background:#fff;border:1px solid var(--line-soft);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:30px 30px 28px;position:relative;
+  }
+  .otform .ot-tag{
+    position:absolute;top:14px;right:16px;font-size:10.5px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--blue);background:var(--blue-tint);
+    padding:4px 9px;border-radius:999px;
+  }
+  .otform h3{font-size:16px;color:var(--navy);margin-bottom:4px}
+  .otform .group-sub{font-size:13px;color:var(--muted);margin:0 0 18px}
+  .otform hr{border:0;border-top:1px solid var(--line-soft);margin:24px 0}
+
+  .consent-row{
+    display:flex;gap:12px;align-items:flex-start;background:var(--blue-tint);
+    border:1px solid var(--blue-tint-2);border-radius:12px;padding:15px 16px;margin-bottom:6px;
+  }
+  .consent-row .cbx{margin-top:1px}
+  .consent-row .ctext{font-size:13.5px;color:#2c4a74;line-height:1.5}
+  .consent-row .ctext strong{color:var(--navy)}
+  .create-actions{margin-top:22px}
+  .create-actions .btn-primary{width:100%}
+  .create-actions .mini{text-align:center;font-size:12.5px;color:var(--muted);margin-top:12px}
+
+  /* ============================================================
+     PREFERENCE CENTRE VIEW
+     ============================================================ */
+  .hero{
+    background:
+      radial-gradient(1100px 320px at 82% -40%, rgba(34,163,217,.20), transparent 60%),
+      linear-gradient(180deg,#0f3e86 0%, var(--navy) 100%);
+    color:#fff;padding:44px 24px 120px;
+  }
+  .hero-inner{max-width:1060px;margin:0 auto}
+  .hero .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase;color:#bfe1f4;margin-bottom:16px;
+  }
+  .hero .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--yellow)}
+  .hero h1{font-size:34px;line-height:1.15;max-width:19ch;font-weight:750}
+  .hero p.lede{margin:14px 0 0;font-size:16.5px;color:#d6e6f4;max-width:56ch}
+
+  .wrap{max-width:1060px;margin:-84px auto 0;padding:0 24px 72px;position:relative;z-index:5}
+
+  .card{
+    background:var(--white);border:1px solid var(--line-soft);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:26px 28px;margin-bottom:20px;
+  }
+  .section-eyebrow{
+    display:flex;align-items:center;gap:10px;font-size:11.5px;font-weight:700;
+    letter-spacing:.11em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;
+  }
+  .section-eyebrow .num{
+    width:22px;height:22px;border-radius:6px;background:var(--blue-tint);color:var(--navy);
+    display:grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:0;
+  }
+  .card h2{font-size:20px;color:var(--navy);font-weight:700}
+  .card .sub{color:var(--muted);font-size:14.5px;margin-top:5px;max-width:64ch}
+
+  /* Greeting strip */
+  .identity{
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:20px 24px;
+    background:linear-gradient(180deg,#fff, var(--blue-tint));
+    border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;
+  }
+  .avatar{
+    width:52px;height:52px;border-radius:50%;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--blue),var(--navy));color:#fff;
+    display:grid;place-items:center;font-weight:700;font-size:18px;letter-spacing:.02em;
+    box-shadow:0 4px 12px rgba(12,55,122,.25);
+  }
+  .identity .who{display:flex;flex-direction:column;gap:2px}
+  .identity .who .greet{font-size:12px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.08em}
+  .identity .who .name{font-size:18px;font-weight:700;color:var(--navy)}
+  .identity .new-badge{
+    display:inline-flex;align-items:center;gap:6px;background:var(--green-tint);color:var(--green);
+    font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;
+  }
+  .notyou{font-size:13px;color:var(--muted);margin-left:auto;white-space:nowrap}
+  .notyou button{background:none;border:0;color:var(--blue);font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;padding:0}
+  .notyou button:hover{text-decoration:underline}
+
+  /* Your data card */
+  .data-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 26px;margin-top:16px}
+  .data-item{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .data-item .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+  .data-item .v{font-size:15px;font-weight:600;color:var(--ink);word-break:break-word}
+  .data-edit{margin-top:18px;padding-top:16px;border-top:1px solid var(--line-soft);font-size:13px;color:var(--muted)}
+  .data-edit a{color:var(--blue);font-weight:600}
+
+  /* Purpose toggles — title on top, description clearly underneath */
+  .purpose{display:flex;align-items:center;gap:18px;padding:18px 4px;border-bottom:1px solid var(--line-soft)}
+  .purpose:last-child{border-bottom:0;padding-bottom:4px}
+  .purpose .icon{
+    width:40px;height:40px;flex:0 0 auto;border-radius:10px;background:var(--blue-tint);
+    display:grid;place-items:center;color:var(--navy);align-self:flex-start;margin-top:2px;
+  }
+  .purpose .txt{flex:1;min-width:0}
+  .purpose .txt .t{display:block;font-weight:700;font-size:16px;color:var(--navy);line-height:1.3}
+  .purpose .txt .d{display:block;font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.5;max-width:60ch}
+  .state{font-size:12px;font-weight:700;color:var(--muted);min-width:74px;text-align:right;letter-spacing:.02em}
+  .state.on{color:var(--green)}
+
+  /* Switch */
+  .switch{position:relative;display:inline-block;width:48px;height:28px;flex:0 0 auto;align-self:center}
+  .switch input{opacity:0;width:0;height:0;position:absolute}
+  .slider{position:absolute;cursor:pointer;inset:0;background:#c6d2e0;border-radius:999px;transition:background .18s ease}
+  .slider::before{
+    content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:#fff;
+    border-radius:50%;transition:transform .18s ease;box-shadow:0 1px 3px rgba(0,0,0,.25);
+  }
+  .switch input:checked + .slider{background:var(--green)}
+  .switch input:checked + .slider::before{transform:translateX(20px)}
+  .switch input:focus-visible + .slider{outline:3px solid rgba(34,163,217,.45);outline-offset:2px}
+
+  /* Channel matrix */
+  .matrix-scroll{overflow-x:auto;margin:2px -4px 0;padding:0 4px 4px}
+  table.matrix{border-collapse:collapse;width:100%;min-width:560px}
+  table.matrix th,table.matrix td{padding:13px 10px;text-align:center}
+  table.matrix thead th{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--line)}
+  table.matrix thead th .ch-ico{display:block;margin:0 auto 5px;color:var(--blue)}
+  table.matrix tbody th{text-align:left;font-size:14px;font-weight:650;color:var(--ink);white-space:nowrap;border-bottom:1px solid var(--line-soft);padding-left:2px}
+  table.matrix tbody td{border-bottom:1px solid var(--line-soft)}
+  table.matrix tbody tr:last-child th,table.matrix tbody tr:last-child td{border-bottom:0}
+  .cbx{position:relative;display:inline-flex;width:24px;height:24px;cursor:pointer}
+  .cbx input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer;width:100%;height:100%}
+  .cbx .box{width:24px;height:24px;border-radius:7px;border:2px solid #c6d2e0;background:#fff;display:grid;place-items:center;transition:all .15s ease}
+  .cbx .box svg{opacity:0;transform:scale(.6);transition:all .15s ease;color:#fff}
+  .cbx input:checked + .box{background:var(--green);border-color:var(--green)}
+  .cbx input:checked + .box svg{opacity:1;transform:scale(1)}
+  .cbx input:focus-visible + .box{outline:3px solid rgba(34,163,217,.45);outline-offset:2px}
+
+  /* Chips */
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+  .chip{
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:9px 15px;border-radius:999px;
+    border:1.5px solid var(--line);background:#fff;font-size:14px;font-weight:600;color:var(--ink);
+    transition:all .15s ease;user-select:none;
+  }
+  .chip:hover{border-color:var(--blue)}
+  .chip .tick{width:15px;height:15px;opacity:0;transform:scale(.5);transition:all .15s ease;color:var(--blue)}
+  .chip[aria-pressed="true"]{background:var(--blue-tint);border-color:var(--blue);color:var(--navy)}
+  .chip[aria-pressed="true"] .tick{opacity:1;transform:scale(1)}
+
+  /* Frequency segmented */
+  .segmented{display:inline-flex;background:var(--blue-tint);border-radius:12px;padding:5px;gap:4px;flex-wrap:wrap}
+  .segmented button{
+    border:0;background:transparent;cursor:pointer;font-family:inherit;padding:10px 18px;border-radius:9px;
+    font-size:14px;font-weight:650;color:var(--navy);transition:all .15s ease;
+  }
+  .segmented button[aria-pressed="true"]{background:#fff;color:var(--navy);box-shadow:var(--shadow)}
+  .segmented button:focus-visible{outline:3px solid rgba(34,163,217,.45);outline-offset:2px}
+
+  /* Privacy */
+  .privacy{background:var(--blue-tint);border:1px solid var(--blue-tint-2)}
+  .privacy .assured{display:flex;align-items:flex-start;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--blue-tint-2);color:var(--navy);font-size:14px;font-weight:600}
+  .privacy .assured svg{flex:0 0 auto;color:var(--green);margin-top:1px}
+  .privacy p{font-size:14px;color:#2c4a74;margin:0}
+  .privacy p + p{margin-top:9px}
+
+  /* Action bar */
+  .actionbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:22px 28px;background:#fff;border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .actionbar .spacer{flex:1}
+  .actionbar .savenote{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+  .actionbar .btn-link{padding:14px 8px}
+
+  /* Footer */
+  footer{background:var(--navy);color:#cfe0f2;margin-top:20px}
+  .foot-inner{max-width:1060px;margin:0 auto;padding:30px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  footer .wordmark .part{color:#fff}
+  .foot-links{display:flex;gap:22px;flex-wrap:wrap;font-size:13.5px}
+  .foot-links a{color:#cfe0f2}
+  .foot-links a:hover{color:#fff}
+  .copyright{font-size:12.5px;color:#8fb3d6;width:100%;padding-top:6px}
+
+  /* Mockup marker */
+  .mock-marker{
+    position:fixed;bottom:14px;left:14px;z-index:40;background:rgba(12,55,122,.9);color:#fff;
+    font-size:11px;font-weight:600;padding:6px 12px;border-radius:999px;letter-spacing:.02em;
+    pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.2);
+  }
+
+  /* Confirmation modal */
+  .overlay{position:fixed;inset:0;background:rgba(12,35,63,.42);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .overlay.show{display:flex}
+  .modal{
+    background:#fff;border-radius:18px;max-width:440px;width:100%;padding:34px 32px 28px;
+    box-shadow:var(--shadow-lg);text-align:center;transform:translateY(8px) scale(.98);opacity:0;
+    transition:all .22s cubic-bezier(.2,.8,.2,1);
+  }
+  .overlay.show .modal{transform:none;opacity:1}
+  .modal .check{width:64px;height:64px;border-radius:50%;background:var(--green-tint);color:var(--green);display:grid;place-items:center;margin:0 auto 18px}
+  .modal h3{font-size:21px;color:var(--navy);margin-bottom:8px}
+  .modal p{color:var(--muted);font-size:14.5px;margin:0 0 18px}
+  .receipt{background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:14px 16px;text-align:left;font-size:13px;margin-bottom:22px}
+  .receipt .row{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+  .receipt .row .k{color:var(--muted);font-weight:600}
+  .receipt .row .v{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  .modal .btn-primary{width:100%;background:var(--green);box-shadow:0 6px 18px rgba(21,147,74,.3)}
+  .modal .btn-primary:hover{background:#0f7d3d}
+
+  /* Responsive */
+  @media (max-width:860px){
+    .auth{grid-template-columns:1fr}
+    .auth-panel{padding:34px 28px}
+    .auth-panel .panel-body{margin:0}
+    .auth-panel h1{font-size:26px}
+    .auth-panel p{margin-bottom:20px}
+  }
+  @media (max-width:720px){
+    .hero{padding:34px 20px 116px}
+    .hero h1{font-size:27px}
+    .wrap{padding:0 16px 56px}
+    .topbar-inner{padding:14px 18px}
+    .card{padding:22px 18px}
+    .identity{padding:18px}
+    .notyou{margin-left:0;width:100%}
+    .data-grid{grid-template-columns:1fr 1fr;gap:16px 20px}
+    .create-wrap{padding:28px 16px 48px}
+    .otform{padding:22px 18px}
+    .field-row{flex-direction:column;gap:0}
+    .actionbar{flex-direction:column;align-items:stretch}
+    .actionbar .spacer{display:none}
+    .actionbar .savenote{justify-content:center}
+    .foot-inner{flex-direction:column;align-items:flex-start}
+  }
+  @media (max-width:440px){
+    .data-grid{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     VIEW 1 — LOGIN
+     ============================================================ -->
+<div class="view active" id="viewLogin">
+  <div class="auth">
+    <aside class="auth-panel">
+      <div class="logo-slot" aria-label="Daiichi Sankyo">
+        <img src="images/daiichi-sankyo-logo.png" alt="Daiichi Sankyo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="logo-ph" style="display:none">Logo</span>
+      </div>
+      <div class="panel-body">
+        <span class="eyebrow"><span class="dot"></span> Healthcare Professional Portal</span>
+        <h1>Innovative science, delivered with care.</h1>
+        <p>Your dedicated space for Daiichi Sankyo medical resources, product information and services for healthcare professionals.</p>
+        <ul class="assure-list">
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Medical and product information</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Events, congresses and webinars</li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg> Manage your account and preferences</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="auth-main">
+      <div class="auth-card">
+        <div class="signin-head">
+          <h2>Sign in</h2>
+          <p>Access your communication preferences.</p>
+        </div>
+        <div class="field">
+          <label for="loginEmail">Email address</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password">
+        </div>
+        <a href="#" class="forgot">Forgot password?</a>
+        <button class="btn btn-primary btn-block" id="signInBtn">Sign in</button>
+        <div class="auth-alt">
+          New to the portal? <a href="#" id="toCreate">Create an account</a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- GDPR cookie banner (shown on the initial page) -->
+  <div class="cookie" id="cookie" role="dialog" aria-label="Cookie consent">
+    <div class="cookie-inner">
+      <div class="cookie-text">
+        <strong>We value your privacy</strong>
+        <span>We use cookies to run this website, remember your settings and understand how the site is used. You can accept all cookies, reject non-essential ones, or manage your choices. Read our <a href="#">Cookie Policy</a>.</span>
+      </div>
+      <div class="cookie-actions">
+        <button class="ck-link" id="ckManage" type="button">Cookie settings</button>
+        <button class="ck-btn ck-ghost" id="ckReject" type="button">Reject non-essential</button>
+        <button class="ck-btn ck-solid" id="ckAccept" type="button">Accept all</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     VIEW 2 — CREATE ACCOUNT (OneTrust inline collection point)
+     ============================================================ -->
+<div class="view" id="viewCreate">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo-slot" aria-label="Daiichi Sankyo">
+        <img src="images/daiichi-sankyo-logo.png" alt="Daiichi Sankyo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="logo-ph" style="display:none">Logo</span>
+      </div>
+      <div class="topbar-right">
+        <button class="backlink" id="backToLogin" type="button">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to sign in
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="create-wrap">
+    <div class="create-head">
+      <span class="eyebrow"><span class="dot"></span> Create your account</span>
+      <h1>Register as a healthcare professional</h1>
+      <p>Tell us a few details to set up your account. You&#8217;ll choose your communication preferences on the next step.</p>
+    </div>
+
+    <!-- ============================================================
+         OneTrust inline collection point goes HERE.
+         Replace everything inside <form id="otForm"> ... </form>
+         with your OneTrust web form embed script / container.
+         The field IDs below are read on submit to pre-fill the
+         "Your data" panel on the preference centre. Keep matching
+         IDs (or update the mapping in the script at the bottom).
+         ============================================================ -->
+    <form class="otform" id="otForm" autocomplete="on">
+      <span class="ot-tag">OneTrust &#183; Collection point</span>
+
+      <h3>Your details</h3>
+      <p class="group-sub">Fields shown with fictional sample data for this demo.</p>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="fFirst">First name</label>
+          <input type="text" id="fFirst" value="Anuschka">
+        </div>
+        <div class="field">
+          <label for="fLast">Last name</label>
+          <input type="text" id="fLast" value="Mader">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="fDob">Date of birth</label>
+          <input type="text" id="fDob" value="05 February 1991">
+        </div>
+        <div class="field">
+          <label for="fPhone">Phone number</label>
+          <input type="tel" id="fPhone" value="+34 603 60 06 77">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="fEmail">Email address</label>
+        <input type="email" id="fEmail" value="anuschka.mader@clinica-example.es">
+      </div>
+
+      <div class="field">
+        <label for="fAddress">Address</label>
+        <input type="text" id="fAddress" value="Calle de Alcala 42, 28014 Madrid, Spain">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="fMedId">Medical registration ID</label>
+          <input type="text" id="fMedId" value="ES-COL-284471">
+          <span class="hint">e.g. Colegiado / HCP registration number.</span>
+        </div>
+        <div class="field">
+          <label for="fCountry">Country / affiliate</label>
+          <select id="fCountry">
+            <option>Spain</option>
+            <option>Germany</option>
+            <option>France</option>
+            <option>Italy</option>
+            <option>Netherlands</option>
+          </select>
+        </div>
+      </div>
+
+      <hr>
+
+      <div class="consent-row">
+        <label class="cbx"><input type="checkbox" id="fGeneral" checked aria-label="General communication consent"><span class="box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M20 6L9 17l-5-5"/></svg></span></label>
+        <span class="ctext"><strong>General communication consent.</strong> I agree that Daiichi Sankyo may create my account and contact me about my preferences. I can set detailed topic and channel choices next, and withdraw consent at any time. See the <a href="#">Privacy Notice</a>.</span>
+      </div>
+
+      <div class="create-actions">
+        <button class="btn btn-primary" id="createBtn" type="submit">Create account &amp; continue</button>
+        <p class="mini">You&#8217;ll be taken to your preference centre to make your choices.</p>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     VIEW 3 — PREFERENCE CENTRE
+     ============================================================ -->
+<div class="view" id="viewPrefs">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="logo-slot" aria-label="Daiichi Sankyo">
+        <img src="images/daiichi-sankyo-logo.png" alt="Daiichi Sankyo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="logo-ph" style="display:none">Logo</span>
+      </div>
+      <div class="topbar-right">
+        <span class="locale">
+          <span class="flag" aria-hidden="true">
+            <svg width="18" height="13" viewBox="0 0 3 2"><rect width="3" height="2" fill="#C60B1E"/><rect width="3" height="1" y=".5" fill="#FFC400"/></svg>
+          </span>
+          Spain &#183; EN
+        </span>
+        <span class="secure" title="Secure connection">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          Secure
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="eyebrow"><span class="dot"></span> HCP Communication Preferences</span>
+      <h1>Manage your communication preferences</h1>
+      <p class="lede">You&#8217;re in control of what you hear from us, and how. Choose the topics, channels and frequency that suit your practice &#8212; and update them whenever you like.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- Greeting -->
+    <section class="identity" aria-label="Your account">
+      <div class="avatar" id="pcAvatar" aria-hidden="true">AM</div>
+      <div class="who">
+        <span class="greet">Welcome</span>
+        <span class="name" id="pcName">Anuschka Mader</span>
+      </div>
+      <span class="new-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 3v18M3 12h18"/></svg>
+        New account
+      </span>
+      <span class="notyou">Not you? <button type="button" id="signOut">Sign out</button></span>
+    </section>
+
+    <!-- Your data -->
+    <section class="card">
+      <div class="section-eyebrow"><span class="num">1</span> From your account</div>
+      <h2>Your data</h2>
+      <p class="sub">These details came from your registration. They&#8217;re used only to manage the communications you choose below.</p>
+      <div class="data-grid">
+        <div class="data-item"><span class="k">First name</span><span class="v" id="dFirst">Anuschka</span></div>
+        <div class="data-item"><span class="k">Last name</span><span class="v" id="dLast">Mader</span></div>
+        <div class="data-item"><span class="k">Date of birth</span><span class="v" id="dDob">05 February 1991</span></div>
+        <div class="data-item"><span class="k">Phone</span><span class="v" id="dPhone">+34 603 60 06 77</span></div>
+        <div class="data-item"><span class="k">Email</span><span class="v" id="dEmail">anuschka.mader@clinica-example.es</span></div>
+        <div class="data-item"><span class="k">Country / affiliate</span><span class="v" id="dCountry">Spain</span></div>
+      </div>
+      <div class="data-edit">Something not right? <a href="#">Update your details</a></div>
+    </section>
+
+    <!-- Purposes -->
+    <section class="card">
+      <div class="section-eyebrow"><span class="num">2</span> What you&#8217;d like to receive</div>
+      <h2>Communication purposes</h2>
+      <p class="sub">Turn on the types of communication you&#8217;d like to receive from Daiichi Sankyo. Everything is off by default &#8212; nothing is sent without your explicit choice.</p>
+
+      <div style="margin-top:14px">
+        <label class="purpose">
+          <span class="icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+          <span class="txt"><span class="t">Commercial &amp; promotional updates</span><span class="d">Product news, therapy updates and promotional materials relevant to your specialty.</span></span>
+          <span class="state" data-state>Off</span>
+          <span class="switch"><input type="checkbox" data-purpose aria-label="Commercial and promotional updates"><span class="slider"></span></span>
+        </label>
+
+        <label class="purpose">
+          <span class="icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg></span>
+          <span class="txt"><span class="t">Medical &amp; scientific information</span><span class="d">Clinical data, publications, medical education and scientific exchange.</span></span>
+          <span class="state" data-state>Off</span>
+          <span class="switch"><input type="checkbox" data-purpose aria-label="Medical and scientific information"><span class="slider"></span></span>
+        </label>
+
+        <label class="purpose">
+          <span class="icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h5"/></svg></span>
+          <span class="txt"><span class="t">Newsletters</span><span class="d">Periodic newsletters curated for your therapeutic areas of interest.</span></span>
+          <span class="state" data-state>Off</span>
+          <span class="switch"><input type="checkbox" data-purpose aria-label="Newsletters"><span class="slider"></span></span>
+        </label>
+
+        <label class="purpose">
+          <span class="icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+          <span class="txt"><span class="t">Event &amp; congress invitations</span><span class="d">Invitations to symposia, webinars and congress activities.</span></span>
+          <span class="state" data-state>Off</span>
+          <span class="switch"><input type="checkbox" data-purpose aria-label="Event and congress invitations"><span class="slider"></span></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Channel matrix -->
+    <section class="card">
+      <div class="section-eyebrow"><span class="num">3</span> How we reach you</div>
+      <h2>Channel preferences</h2>
+      <p class="sub">Choose which channels we may use for each purpose. Leave a box unchecked and we won&#8217;t contact you that way.</p>
+
+      <div class="matrix-scroll">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th style="text-align:left">Purpose</th>
+              <th><span class="ch-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>Email</th>
+              <th><span class="ch-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>Phone</th>
+              <th><span class="ch-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>SMS</th>
+              <th><span class="ch-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>Rep visit</th>
+              <th><span class="ch-ico" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 8l9 5 9-5"/></svg></span>Post</th>
+            </tr>
+          </thead>
+          <tbody id="matrixBody"><!-- rows injected by JS --></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Topics -->
+    <section class="card">
+      <div class="section-eyebrow"><span class="num">4</span> Optional</div>
+      <h2>Therapeutic interests</h2>
+      <p class="sub">Tell us what&#8217;s relevant to you and we&#8217;ll keep content focused. Select as many as apply.</p>
+      <div class="chips" id="chips">
+        <span class="chip" role="button" tabindex="0" aria-pressed="false">Cardiovascular<span class="tick" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span></span>
+        <span class="chip" role="button" tabindex="0" aria-pressed="false">Oncology<span class="tick" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span></span>
+        <span class="chip" role="button" tabindex="0" aria-pressed="false">Product safety updates<span class="tick" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span></span>
+        <span class="chip" role="button" tabindex="0" aria-pressed="false">Clinical trial news<span class="tick" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span></span>
+        <span class="chip" role="button" tabindex="0" aria-pressed="false">Educational resources<span class="tick" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span></span>
+      </div>
+    </section>
+
+    <!-- Frequency -->
+    <section class="card">
+      <div class="section-eyebrow"><span class="num">5</span> Cadence</div>
+      <h2>How often</h2>
+      <p class="sub">Set the rhythm that works for you. You can change this at any time.</p>
+      <div class="segmented" id="frequency" role="group" aria-label="Contact frequency">
+        <button type="button" aria-pressed="false">Weekly</button>
+        <button type="button" aria-pressed="false">Monthly</button>
+        <button type="button" aria-pressed="false">Only important updates</button>
+      </div>
+    </section>
+
+    <!-- Privacy -->
+    <section class="card privacy">
+      <div class="section-eyebrow"><span class="num">6</span> Your privacy</div>
+      <h2>How we handle your choices</h2>
+      <p style="margin-top:12px">We only use your details to manage the communications you&#8217;ve chosen here. You can withdraw your consent at any time &#8212; either on this page or via the unsubscribe link in any message. For full details, see our <a href="#">Privacy Notice</a>.</p>
+      <p>Each choice you make is recorded with a date and time stamp so we have a clear, auditable record of your consent.</p>
+      <div class="assured">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        Your preferences are securely recorded and applied consistently across all Daiichi Sankyo channels.
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <section class="actionbar">
+      <button class="btn btn-primary" id="saveBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+        Save my preferences
+      </button>
+      <span class="savenote">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Changes apply immediately once saved
+      </span>
+      <span class="spacer"></span>
+      <button class="btn btn-link" id="unsubAll">Unsubscribe from all</button>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="foot-inner">
+      <div class="logo-slot" aria-label="Daiichi Sankyo">
+        <img src="images/daiichi-sankyo-logo.png" alt="Daiichi Sankyo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="logo-ph" style="display:none">Logo</span>
+      </div>
+      <nav class="foot-links">
+        <a href="#">Privacy Notice</a><a href="#">Imprint</a><a href="#">Contact</a>
+      </nav>
+      <div class="copyright">&#169; 2026 Daiichi Sankyo Europe GmbH. Illustrative sample &#8212; not an official Daiichi Sankyo property.</div>
+    </div>
+  </footer>
+</div>
+
+<div class="mock-marker">Illustrative mockup &#8212; sample data</div>
+
+<!-- Confirmation modal -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="check" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg></div>
+    <h3 id="modalTitle">Your preferences have been updated</h3>
+    <p id="modalBody">Thanks, Dr. Mader. Your choices are now recorded and will be applied across all Daiichi Sankyo channels.</p>
+    <div class="receipt">
+      <div class="row"><span class="k">Confirmation reference</span><span class="v" id="refId">&#8212;</span></div>
+      <div class="row"><span class="k">Recorded</span><span class="v" id="refTime">&#8212;</span></div>
+      <div class="row"><span class="k">Active preferences</span><span class="v" id="refCount">&#8212;</span></div>
+    </div>
+    <button class="btn btn-primary" id="closeModal">Done</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Cookie banner ---------- */
+  var cookie = document.getElementById('cookie');
+  function dismissCookie(){ cookie.classList.remove('show'); }
+  // reveal shortly after load for a natural entrance
+  setTimeout(function(){ cookie.classList.add('show'); }, 500);
+  ['ckAccept','ckReject','ckManage'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', dismissCookie);
+  });
+
+  function showView(id){
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+    if(id !== 'viewLogin') dismissCookie();
+  }
+  document.getElementById('toCreate').addEventListener('click', function(e){ e.preventDefault(); showView('viewCreate'); });
+  document.getElementById('backToLogin').addEventListener('click', function(){ showView('viewLogin'); });
+  document.getElementById('signInBtn').addEventListener('click', function(){ showView('viewPrefs'); });
+  document.getElementById('signOut').addEventListener('click', function(){ showView('viewLogin'); });
+
+  function val(id, fallback){
+    var el = document.getElementById(id);
+    return (el && el.value && el.value.trim()) ? el.value.trim() : fallback;
+  }
+  function initials(first, last){
+    return ((first||'')[0]||'').toUpperCase() + ((last||'')[0]||'').toUpperCase();
+  }
+  document.getElementById('otForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var first = val('fFirst','Anuschka');
+    var last  = val('fLast','Mader');
+    var dob   = val('fDob','05 February 1991');
+    var phone = val('fPhone','+34 603 60 06 77');
+    var email = val('fEmail','anuschka.mader@clinica-example.es');
+    var country = val('fCountry','Spain');
+
+    document.getElementById('pcName').textContent  = first + ' ' + last;
+    document.getElementById('pcAvatar').textContent = initials(first,last) || 'AM';
+    document.getElementById('dFirst').textContent   = first;
+    document.getElementById('dLast').textContent    = last;
+    document.getElementById('dDob').textContent     = dob;
+    document.getElementById('dPhone').textContent   = phone;
+    document.getElementById('dEmail').textContent   = email;
+    document.getElementById('dCountry').textContent = country;
+    document.getElementById('modalBody').textContent =
+      'Thanks, Dr. ' + last + '. Your choices are now recorded and will be applied across all Daiichi Sankyo channels.';
+
+    showView('viewPrefs');
+  });
+
+  document.querySelectorAll('[data-purpose]').forEach(function(input){
+    input.addEventListener('change', function(){
+      var label = input.closest('.purpose').querySelector('[data-state]');
+      label.textContent = input.checked ? 'On' : 'Off';
+      label.classList.toggle('on', input.checked);
+    });
+  });
+
+  var purposes = ['Commercial','Medical & scientific','Newsletters','Events & congresses'];
+  var channels = ['Email','Phone','SMS','Rep visit','Post'];
+  var tick = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M20 6L9 17l-5-5"/></svg>';
+  var body = document.getElementById('matrixBody');
+  purposes.forEach(function(p){
+    var tr = document.createElement('tr');
+    var th = document.createElement('th'); th.textContent = p; tr.appendChild(th);
+    channels.forEach(function(c){
+      var td = document.createElement('td');
+      td.innerHTML = '<label class="cbx"><input type="checkbox" aria-label="'+c+' for '+p+'"><span class="box">'+tick+'</span></label>';
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+
+  document.querySelectorAll('#chips .chip').forEach(function(chip){
+    function toggle(){ chip.setAttribute('aria-pressed', String(chip.getAttribute('aria-pressed') !== 'true')); }
+    chip.addEventListener('click', toggle);
+    chip.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } });
+  });
+
+  var freqBtns = document.querySelectorAll('#frequency button');
+  freqBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      freqBtns.forEach(function(b){ b.setAttribute('aria-pressed','false'); });
+      btn.setAttribute('aria-pressed','true');
+    });
+  });
+
+  function countActive(){
+    return document.querySelectorAll('[data-purpose]:checked').length
+         + document.querySelectorAll('#matrixBody input:checked').length
+         + document.querySelectorAll('#chips .chip[aria-pressed="true"]').length;
+  }
+  var overlay = document.getElementById('overlay');
+  function makeRef(){
+    var t = Date.now().toString(36).toUpperCase().slice(-6);
+    var r = Math.floor(Math.random()*46656).toString(36).toUpperCase().padStart(3,'0');
+    return 'DS-CNS-' + t + r;
+  }
+  function fmtTime(){
+    return new Date().toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}) + ' CET';
+  }
+  function openModal(){
+    document.getElementById('refId').textContent = makeRef();
+    document.getElementById('refTime').textContent = fmtTime();
+    document.getElementById('refCount').textContent = countActive() + ' selected';
+    overlay.classList.add('show');
+  }
+  function closeModal(){ overlay.classList.remove('show'); }
+
+  document.getElementById('saveBtn').addEventListener('click', openModal);
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) closeModal(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+
+  document.getElementById('unsubAll').addEventListener('click', function(){
+    document.querySelectorAll('[data-purpose]').forEach(function(i){ i.checked=false; i.dispatchEvent(new Event('change')); });
+    document.querySelectorAll('#matrixBody input').forEach(function(i){ i.checked=false; });
+    document.querySelectorAll('#chips .chip').forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+    openModal();
+  });
+})();
+</script>
+</body>
+</html>
